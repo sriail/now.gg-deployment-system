@@ -1,0 +1,20 @@
+{
+  "name": "nowgg-rotating-proxy-scramjet",
+  "version": "0.1.0",
+  "description": "Example of streaming through rotating proxies using scramjet",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "DEBUG=true node src/server.js"
+  },
+  "author": "sriail",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "express": "^4.18.2",
+    "got": "^12.6.0",
+    "proxy-agent": "^6.0.0",
+    "scramjet": "^3.6.0",
+    "pino": "^8.16.0"
+  }
+}
