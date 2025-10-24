@@ -16,6 +16,35 @@ const proxyPool = new ProxyPool(PROXIES, { healthInterval: PROXY_HEALTH_INTERVAL
 
 const app = express();
 
+// Middleware for iframe embedding and CSP headers
+app.use((req, res, next) => {
+  const allowIframe = process.env.ALLOW_IFRAME === 'true';
+  const allowSandboxIframe = process.env.ALLOW_SANDBOX_IFRAME === 'true';
+  
+  if (allowIframe || allowSandboxIframe) {
+    const cspDirectives = [];
+    
+    // Add frame-ancestors directive if iframe embedding is allowed
+    if (allowIframe) {
+      const origins = process.env.ALLOW_IFRAME_ORIGINS || '*';
+      cspDirectives.push(`frame-ancestors ${origins}`);
+    }
+    
+    // Add sandbox directive if sandboxed iframes are allowed
+    if (allowSandboxIframe) {
+      const sandboxDirectives = process.env.ALLOW_SANDBOX_DIRECTIVES || 'allow-forms allow-scripts allow-same-origin';
+      cspDirectives.push(`sandbox ${sandboxDirectives}`);
+    }
+    
+    // Set Content-Security-Policy header with combined directives
+    if (cspDirectives.length > 0) {
+      res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
+    }
+  }
+  
+  next();
+});
+
 app.get('/', (req, res) => {
   res.json({ message: 'scramjet + rotating-proxy streamer', proxiesConfigured: PROXIES.length });
 });

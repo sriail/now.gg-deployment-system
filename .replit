@@ -1,0 +1,5 @@
+run = "npm start"
+language = "nodejs"
+
+[nix]
+channel = "stable-22_11"
