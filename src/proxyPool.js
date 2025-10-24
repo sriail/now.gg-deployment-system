@@ -1,3 +1,7 @@
+// Canonical proxy-pool module (index.js)
+// This is a copy of the ProxyPool implementation but placed in a folder with index.js
+// so require('./proxy-pool') resolves cleanly across platforms.
+
 const { URL } = require('url');
 const got = require('got');
 const ProxyAgent = require('proxy-agent');
@@ -24,7 +28,6 @@ class ProxyPool {
 
   async checkProxy(proxy) {
     // perform a light request to a known fast site using the proxy to determine liveness.
-    // Note: keep the check target lightweight and allowed by your proxies provider.
     const testUrl = 'https://httpbin.org/get';
     const agent = new ProxyAgent(proxy.url);
 
@@ -52,7 +55,6 @@ class ProxyPool {
 
   getNextProxy() {
     if (this.proxies.length === 0) return null;
-    // rotate until we find a healthy proxy
     const start = this.index;
     for (let i = 0; i < this.proxies.length; i++) {
       const idx = (start + i) % this.proxies.length;
@@ -60,7 +62,7 @@ class ProxyPool {
       const p = this.proxies[idx];
       if (p.healthy) return p;
     }
-    // if none healthy, return next anyway (best-effort)
+    // fallback if none healthy
     const fallback = this.proxies[this.index++];
     this.index = this.index % this.proxies.length;
     return fallback;
@@ -70,7 +72,6 @@ class ProxyPool {
     const p = this.proxies.find(x => x.url === proxyUrl);
     if (!p) return;
     p.fails = (p.fails || 0) + 1;
-    // mark unhealthy early if fail count high
     if (p.fails >= 3) p.healthy = false;
   }
 }
