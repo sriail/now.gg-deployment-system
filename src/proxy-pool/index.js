@@ -1,10 +1,18 @@
 // Canonical proxy-pool module (index.js)
-// This is a copy of the ProxyPool implementation but placed in a folder with index.js
-// so require('./proxy-pool') resolves cleanly across platforms.
+// Uses dynamic import for 'got' because got v12+ is ESM-only.
+// We cache the imported got module to avoid re-importing on every call.
 
 const { URL } = require('url');
-const got = require('got');
 const ProxyAgent = require('proxy-agent');
+
+let _got = null;
+async function ensureGot() {
+  if (_got) return _got;
+  // dynamic import returns the ESM module; default export may be on .default
+  const mod = await import('got');
+  _got = mod.default || mod;
+  return _got;
+}
 
 class ProxyPool {
   constructor(proxyList = [], { healthInterval = 30000, logger = console } = {}) {
@@ -27,11 +35,11 @@ class ProxyPool {
   }
 
   async checkProxy(proxy) {
-    // perform a light request to a known fast site using the proxy to determine liveness.
     const testUrl = 'https://httpbin.org/get';
     const agent = new ProxyAgent(proxy.url);
 
     try {
+      const got = await ensureGot();
       const res = await got(testUrl, { agent: { https: agent, http: agent }, timeout: 5000 });
       proxy.healthy = res.statusCode === 200;
       proxy.lastChecked = Date.now();
