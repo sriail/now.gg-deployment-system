@@ -1,5 +1,4 @@
 const { DataStream } = require('scramjet');
-const got = require('got');
 const ProxyAgent = require('proxy-agent');
 const stream = require('stream');
 const { pipeline } = require('stream');
@@ -16,6 +15,17 @@ const pump = promisify(pipeline);
  * Returns a Promise that resolves when streaming completes or rejects on failure.
  */
 async function streamThroughProxy(url, proxyUrl, res, opts = {}) {
+  // dynamic import/caching of got (v12+ is ESM-only)
+  let _got = null;
+  async function ensureGot() {
+    if (_got) return _got;
+    const mod = await import('got');
+    _got = mod.default || mod;
+    return _got;
+  }
+
+  const got = await ensureGot();
+
   const agent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
   const gotOptions = {
@@ -38,28 +48,18 @@ async function streamThroughProxy(url, proxyUrl, res, opts = {}) {
   // Wrap upstream in a scramjet DataStream so we can e.g. monitor, transform or filter
   const ds = DataStream.from(upstream)
     .map(async (chunk) => {
-      // chunk is Buffer (or String if encoding set). We can do light processing here:
-      // e.g., do a lightweight pass-through while counting bytes.
-      // Using async map allows integrating more complex I/O if needed.
-      // For performance-critical streaming, avoid heavy async work in map.
       return chunk;
     })
-    // Optional: tap for logging
     .tap(chunk => {
       // minimal logging per-chunk (disabled by default)
-      // console.debug && console.debug('chunk length', chunk.length);
     });
 
-  // Convert DataStream back to a Node.js readable stream and pipe to res
-  // DataStream is itself a Node Transform stream, so it can be piped directly.
-  // However, to ensure full pipeline piping with proper error handling, use stream.pipeline
   try {
     await pump(
       ds,
       res
     );
   } catch (err) {
-    // pipeline error
     throw err;
   }
 }
