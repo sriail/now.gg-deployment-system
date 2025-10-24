@@ -3,7 +3,6 @@ Alows for simple Now.gg deployment across platform, useing a Scramjet proxy agen
 # now.gg streaming via scramjet + rotating proxy pool
 
 # Fetures
-
 - Rotates outgoing IPs through a configurable proxy pool
 - Fetches an HTTP(S) stream from Now.gg
 - Pipes the incoming stream through scramjet (for processing, observability, or transformation)
