@@ -1,159 +1,54 @@
-# now.gg Deployment System
+# Now.gg Deployment System
+Alows for simple Now.gg deployment across platform, useing a Scramjet proxy agent, and a rotateing ip config
 
-A streaming proxy server using rotating proxies with scramjet for content delivery.
+## Fetures
+- Rotates outgoing IPs through a configurable proxy pool
+- Fetches an HTTP(S) stream from Now.gg
+- Pipes the incoming stream through scramjet (for processing, observability, or transformation)
+- Relays the stream to requesting clients via an Express endpoint
 
-## Features
+Usage
+1. Copy `.env.example` to `.env` and fill in settings (proxy list, target, etc).
+2. Install dependencies:
+   npm install
+3. Start:
+   npm start
+4. Request:
+   GET /stream?url=<target-url>
+   or
+   GET /stream (uses TARGET_URL from .env)
 
-- Rotating proxy pool with automatic health checks
-- Stream content through multiple proxy servers
-- Support for HTTP and SOCKS5 proxies
-- Configurable iframe embedding support
-- Easy deployment to Vercel, Heroku, or Replit
+# Deployment
+- Vercel
+  1. Add the repository to your Vercel account.
+  2. Ensure Environment Variables from `.env.example` are set in the Vercel Project settings.
+  3. This repository includes `vercel.json` which builds `src/server.js` using `@vercel/node`.
+  4. Deploy from the Vercel dashboard or `vercel` CLI.
 
-## Installation
+- Heroku
+  1. Add the repository to a Heroku app or push the code to Heroku via Git.
+  2. The root `Procfile` contains `web: node src/server.js` so Heroku will start the server.
+  3. Set environment variables on your Heroku app (these correspond to the keys in `.env.example`).
 
-```bash
-npm install
+- Replit
+  1. Import/clone the repository into Replit.
+  2. `.replit` is configured to run `npm start`.
+  3. Set environment variables in Replit's Secrets tab.
+
+Iframe embedding and sandbox controls for use in iframes if the site is inesessable
+- The server supports optional, environment-driven iframe embedding controls.
+- Relevant environment variables:
+  - ALLOW_IFRAME (true/false) — when true the server will set a Content-Security-Policy header that includes a frame-ancestors directive. This allows embedding the site in <iframe> elements from the configured origins.
+  - ALLOW_IFRAME_ORIGINS — comma-separated origins for frame-ancestors (defaults to `*` in the example, but you should set specific origins for production).
+  - ALLOW_SANDBOX_IFRAME (true/false) — when true the server will add a sandbox directive to the Content-Security-Policy header. Default sandbox directives are `allow-forms allow-scripts allow-same-origin` unless overridden by ALLOW_SANDBOX_DIRECTIVES.
+  - ALLOW_SANDBOX_DIRECTIVES — optional, space-separated sandbox tokens (e.g. `allow-forms allow-scripts`).
+- Notes:
+  - The server will set or merge the Content-Security-Policy header when ALLOW_IFRAME or ALLOW_SANDBOX_IFRAME is enabled.
+  - X-Frame-Options is not set by this server (CSP frame-ancestors is the preferred mechanism).
+  - Browser behavior varies; embedding services that require session affinity (cookies, pinned proxies, WebRTC) may require extra configuration.
+
+Security and operational notes
+- Only allow embedding and sandbox directives after carefully considering the security implications.
+- If you allow `frame-ancestors *` you are allowing any origin to embed the app — use specific origins for production.
+- For now.gg-like content that relies on session affinity or browser features (WebRTC), you may need per-client session pinning or a different proxying strategy.
 ```
-
-## Configuration
-
-Copy `.env.example` to `.env` and configure your environment variables:
-
-```bash
-cp .env.example .env
-```
-
-### Environment Variables
-
-- `PROXIES` - Comma-separated list of proxy URLs (http://user:pass@host:port or socks5://...)
-- `TARGET_URL` - Default target URL to stream if none provided in query string
-- `PORT` - Port to run the server on (default: 3000)
-- `PROXY_HEALTH_INTERVAL` - How often (ms) to run proxy health checks (default: 30000)
-- `DEBUG` - Enable debug logging (true/false)
-- `MAX_TRIES` - Max proxy attempts before failing a request (default: 5)
-
-### iframe Embedding Configuration
-
-The server supports optional iframe embedding with configurable security headers:
-
-- `ALLOW_IFRAME` - Set to `true` to allow embedding in iframes (default: false)
-- `ALLOW_IFRAME_ORIGINS` - Comma-separated list of origins allowed to embed (default: `*`)
-  - Use `*` to allow any origin
-  - Use `self` to allow same origin only
-  - Use specific origins like `https://example.com,https://another.com`
-- `ALLOW_SANDBOX_IFRAME` - Set to `true` to add sandbox directive (default: false)
-- `ALLOW_SANDBOX_DIRECTIVES` - Custom sandbox directives (default: `allow-forms allow-scripts allow-same-origin`)
-
-**Note:** Browser support for Content-Security-Policy headers varies. The `sandbox` directive in CSP applies restrictions to the document itself (not to iframes embedding it). For typical iframe embedding scenarios, you may only need `ALLOW_IFRAME=true` without `ALLOW_SANDBOX_IFRAME`. Embedding content from services like now.gg may require session pinning or other measures depending on the target service.
-
-## Running Locally
-
-```bash
-npm start
-```
-
-Or with debug logging:
-
-```bash
-npm run dev
-```
-
-## API Endpoints
-
-### GET /
-
-Returns server status and number of configured proxies.
-
-### GET /stream?url=<target>
-
-Streams the requested target URL through the rotating proxy pool.
-
-- If no `url` query parameter is provided, uses `TARGET_URL` from environment
-- Returns 400 if no URL is configured
-- Returns 502 if all proxy attempts fail
-
-## Deployment
-
-### Deploy to Vercel
-
-1. Install Vercel CLI:
-   ```bash
-   npm install -g vercel
-   ```
-
-2. Deploy:
-   ```bash
-   vercel
-   ```
-
-3. Set environment variables in Vercel dashboard or using CLI:
-   ```bash
-   vercel env add PROXIES
-   vercel env add TARGET_URL
-   vercel env add ALLOW_IFRAME
-   vercel env add ALLOW_IFRAME_ORIGINS
-   ```
-
-The `vercel.json` file configures the deployment to use Node.js serverless functions.
-
-### Deploy to Heroku
-
-1. Install Heroku CLI and login:
-   ```bash
-   heroku login
-   ```
-
-2. Create a new Heroku app:
-   ```bash
-   heroku create your-app-name
-   ```
-
-3. Set environment variables:
-   ```bash
-   heroku config:set PROXIES="http://proxy1.example:8000,http://proxy2.example:8000"
-   heroku config:set TARGET_URL="https://example.com/path"
-   heroku config:set ALLOW_IFRAME=true
-   heroku config:set ALLOW_IFRAME_ORIGINS="*"
-   ```
-
-4. Deploy:
-   ```bash
-   git push heroku main
-   ```
-
-The `Procfile` tells Heroku how to run the application.
-
-### Deploy to Replit
-
-1. Import this repository to Replit
-2. The `.replit` file automatically configures the run command
-3. Set environment variables in Replit's "Secrets" (environment) panel:
-   - Add `PROXIES`
-   - Add `TARGET_URL`
-   - Add `ALLOW_IFRAME` (if needed)
-   - Add `ALLOW_IFRAME_ORIGINS` (if needed)
-
-4. Click "Run" to start the server
-
-## How iframe Embedding Works
-
-When `ALLOW_IFRAME=true`:
-- The server sets `Content-Security-Policy: frame-ancestors <origins>` header
-- This allows the page to be embedded in iframes from specified origins
-- The deprecated `X-Frame-Options` header is not set (CSP takes precedence)
-
-When `ALLOW_SANDBOX_IFRAME=true`:
-- The server adds `sandbox <directives>` to the Content-Security-Policy
-- **Important:** This applies sandbox restrictions to the document itself, not to iframes embedding it
-- For most iframe embedding use cases, you likely only need `ALLOW_IFRAME=true`
-- Default directives: `allow-forms allow-scripts allow-same-origin`
-- Custom directives can be set via `ALLOW_SANDBOX_DIRECTIVES`
-
-Both options can be used together - the CSP header will combine both directives with `; ` separator.
-
-**Important:** If neither option is enabled, the server operates normally without these headers (backwards compatible).
-
-## License
-
-MIT
