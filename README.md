@@ -45,7 +45,7 @@ The server supports optional iframe embedding with configurable security headers
 - `ALLOW_SANDBOX_IFRAME` - Set to `true` to add sandbox directive (default: false)
 - `ALLOW_SANDBOX_DIRECTIVES` - Custom sandbox directives (default: `allow-forms allow-scripts allow-same-origin`)
 
-**Note:** Browser support for Content-Security-Policy headers varies. Embedding now.gg content may require session pinning or other measures depending on the target service.
+**Note:** Browser support for Content-Security-Policy headers varies. The `sandbox` directive in CSP applies restrictions to the document itself (not to iframes embedding it). For typical iframe embedding scenarios, you may only need `ALLOW_IFRAME=true` without `ALLOW_SANDBOX_IFRAME`. Embedding content from services like now.gg may require session pinning or other measures depending on the target service.
 
 ## Running Locally
 
@@ -145,6 +145,8 @@ When `ALLOW_IFRAME=true`:
 
 When `ALLOW_SANDBOX_IFRAME=true`:
 - The server adds `sandbox <directives>` to the Content-Security-Policy
+- **Important:** This applies sandbox restrictions to the document itself, not to iframes embedding it
+- For most iframe embedding use cases, you likely only need `ALLOW_IFRAME=true`
 - Default directives: `allow-forms allow-scripts allow-same-origin`
 - Custom directives can be set via `ALLOW_SANDBOX_DIRECTIVES`
 

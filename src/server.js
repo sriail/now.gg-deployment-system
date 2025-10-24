@@ -26,6 +26,8 @@ app.use((req, res, next) => {
     
     // Add frame-ancestors directive if iframe embedding is allowed
     if (allowIframe) {
+      // Note: Default is '*' (any origin) as specified. For production use,
+      // set ALLOW_IFRAME_ORIGINS to specific origins for better security.
       const origins = process.env.ALLOW_IFRAME_ORIGINS || '*';
       cspDirectives.push(`frame-ancestors ${origins}`);
     }
